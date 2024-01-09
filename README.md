@@ -1,6 +1,7 @@
 # Coolstore Microservice for the MAD workshop
 
-* customers service: Tomcat
-* inventory service: Quarkus
-* gateway: Spring Boot
+* customers service: Spring Boot
 * frontend: Node.js
+* gateway: Spring Boot
+* inventory service: Quarkus
+* orders: Spring Boot
