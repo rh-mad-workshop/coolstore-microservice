@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/nginx-118:1-51
+FROM registry.access.redhat.com/ubi9/nginx-122:1-45
 
 ADD dist .
 

@@ -3,15 +3,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>io.konveyor.demo</groupId>
-	<artifactId>customers</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<artifactId>customers-tomcat</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
 
 	<name>Order Management</name>
 	<packaging>war</packaging>
 	<description>Remaining services for the legacy Order Management application</description>
 
 	<properties>
-		<java.version>1.8</java.version>
+		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -115,11 +115,10 @@
 			<artifactId>postgresql</artifactId>
 			<version>42.2.23</version>
 		</dependency>
-		<!-- Corporate libraries -->
 		<dependency>
-			<groupId>io.konveyor.demo</groupId>
-			<artifactId>config-utils</artifactId>
-			<version>1.0.0</version>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<version>2.2.224</version>
 		</dependency>
 
 	</dependencies>
@@ -148,5 +147,28 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>local</id>
+			<activation>
+        		<activeByDefault>true</activeByDefault>
+    		</activation>
+		</profile>
+		<profile>
+			<id>kubernetes</id>
+			<activation />
+			<build>
+    		<resources>
+      		<resource>
+        		<directory>src/main/resources</directory>
+        		<excludes>
+          		<exclude>**/*.properties</exclude>
+        		</excludes>
+      		</resource>
+    		</resources>
+  		</build>
+		</profile>
+	</profiles>
 
 </project>
