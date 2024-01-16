@@ -1,6 +1,6 @@
 # Coolstore Microservices for the MAD workshop
 
-* customers service: Spring Boot
+* customers service: Jboss Web Server (Tomcat)
 * frontend: Node.js
 * gateway: Spring Boot
 * inventory service: Quarkus
