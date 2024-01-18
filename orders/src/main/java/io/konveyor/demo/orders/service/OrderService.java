@@ -13,11 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.opentracing.Span;
 import io.opentracing.Tracer;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
-@Slf4j
 public class OrderService {
 	
 	@Autowired
@@ -33,16 +31,13 @@ public class OrderService {
 	 */
 	public Order findById(Long id) {
 		Span span = tracer.buildSpan("findById").start();
-		log.debug("Entering OrderService.findById()");
 		Optional<Order> o = repository.findById(id);
 		try {
 			Order order = o.get();
 			//Force lazy loading of the OrderItem list
 			order.getItems().size();
-			log.debug("Returning element: " + o);
 			return order;
 		} catch (NoSuchElementException nsee) {
-			log.debug("No element found, returning null");
 			return null;
 		} finally {
 			span.finish();
@@ -50,9 +45,7 @@ public class OrderService {
 	}
 	
 	public Page<Order>findAll(Pageable pageable) {
-		log.debug("Entering OrderService.findAll()");
 		Page<Order> p = repository.findAll(pageable);
-		log.debug("Returning element: " + p);
 		return p;
 	}
 }

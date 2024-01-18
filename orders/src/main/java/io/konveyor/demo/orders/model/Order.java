@@ -1,7 +1,6 @@
 package io.konveyor.demo.orders.model;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -14,14 +13,8 @@ import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
-import lombok.Data;
-import lombok.ToString;
-
-@ToString(exclude = "items")
-@Data
 @Entity
 @Table(name = "orders")
 public class Order implements Serializable {
@@ -40,10 +33,8 @@ public class Order implements Serializable {
 	@Column(name = "customer_uid")
 	private Long customerUID;
 	
-	@JsonFormat
-    (shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy", timezone="CET")
 	@Column(name = "order_date")
-	private Date date;
+	private String date;
 	
 	@JsonManagedReference
 	@OneToMany(
@@ -51,6 +42,37 @@ public class Order implements Serializable {
 	        cascade = CascadeType.ALL, 
 	        orphanRemoval = true)
 	private List<OrderItem> items;
-	
+
+	public Long getId() {
+		return this.id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Long getCustomerUID() {
+		return this.customerUID;
+	}
+
+	public void setCustomerUID(Long customerUID) {
+		this.customerUID = customerUID;
+	}
+
+	public String getDate() {
+		return this.date;
+	}
+
+	public void setDate(String date) {
+		this.date = date;
+	}
+
+	public List<OrderItem> getItems() {
+		return this.items;
+	}
+
+	public void setItems(List<OrderItem> items) {
+		this.items = items;
+	}
 
 }

@@ -16,9 +16,6 @@ import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
-import lombok.Data;
-
-@Data
 @Entity
 @Table(name = "order_items")
 public class OrderItem implements Serializable {
@@ -40,6 +37,46 @@ public class OrderItem implements Serializable {
 	
 	@Column(name = "product_uid")
 	private Long productUID;
+
+	public Long getId() {
+		return this.id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Order getOrder() {
+		return this.order;
+	}
+
+	public void setOrder(Order order) {
+		this.order = order;
+	}
+
+	public Long getProductUID() {
+		return this.productUID;
+	}
+
+	public void setProductUID(Long productUID) {
+		this.productUID = productUID;
+	}
+
+	public Integer getQuantity() {
+		return this.quantity;
+	}
+
+	public void setQuantity(Integer quantity) {
+		this.quantity = quantity;
+	}
+
+	public BigDecimal getPrice() {
+		return this.price;
+	}
+
+	public void setPrice(BigDecimal price) {
+		this.price = price;
+	}
 	
 	private Integer quantity;
 	
