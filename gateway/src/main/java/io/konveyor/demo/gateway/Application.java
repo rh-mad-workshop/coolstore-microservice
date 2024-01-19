@@ -16,7 +16,8 @@ import com.netflix.hystrix.contrib.javanica.aop.aspectj.HystrixCommandAspect;
 	    DataSourceTransactionManagerAutoConfiguration.class, 
 	    HibernateJpaAutoConfiguration.class
 	})
-@EnableCircuitBreaker
+// @EnableCircuitBreaker
+// @SpringBootApplication
 public class Application
 {
 	

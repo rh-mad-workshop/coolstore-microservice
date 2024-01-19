@@ -15,7 +15,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import org.jboss.logging.Logger;
-import com.redhat.coolstore.inventory.exception.ResourceNotFoundException;
 import com.redhat.coolstore.inventory.model.Product;
 import com.redhat.coolstore.inventory.service.IProductService;
 

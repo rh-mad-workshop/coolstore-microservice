@@ -9,9 +9,6 @@ import com.netflix.hystrix.HystrixCommand;
 import com.netflix.hystrix.HystrixCommandGroupKey;
 import com.netflix.hystrix.HystrixThreadPoolKey;
 
-import lombok.extern.slf4j.Slf4j;
-
-@Slf4j
 public class ProductCommand extends HystrixCommand<OrderItem>{
 	private OrderItem item;
 	
@@ -42,7 +39,6 @@ public class ProductCommand extends HystrixCommand<OrderItem>{
 	
 	@Override
 	protected OrderItem getFallback() {
-		log.warn( "Failed to obtain product, " + getFailedExecutionException().getMessage() + " for order line " + item );
 		return item;
 	}
 	
