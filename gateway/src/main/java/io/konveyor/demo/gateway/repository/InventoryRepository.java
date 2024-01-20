@@ -20,10 +20,17 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import lombok.extern.slf4j.Slf4j;
 import rx.Observable;
 
 @Component
+@Slf4j
 public class InventoryRepository extends GenericRepository{
+	
+	@Autowired
+	Tracer tracer;
 	
 	@Autowired
 	RestTemplate restTemplate;
@@ -35,6 +42,8 @@ public class InventoryRepository extends GenericRepository{
 	String inventoryServiceURL;
 	
 	public List<OrderItem> getProductDetails(List<OrderItem> items){
+		Span span = tracer.buildSpan("getProductDetails").start();
+		log.debug("Entering InventoryRepository.getProductDetails()");
 		List<OrderItem> detailedItems = new ArrayList<>();
 		for(int index= 0; index < items.size();) {
 			List<Observable<OrderItem>> observables = new ArrayList<>();
@@ -43,6 +52,7 @@ public class InventoryRepository extends GenericRepository{
 			{
 				observables.add( new ProductCommand( items.get(batchIndex), inventoryServiceURL, restTemplate ).toObservable() );
 			}
+			log.info("Will get product detail from " + observables.size() + " items");
 			Observable<OrderItem[]> zipped = Observable.zip( observables, objects->
 			{
 				OrderItem[] detailed = new OrderItem[objects.length];
@@ -55,13 +65,16 @@ public class InventoryRepository extends GenericRepository{
 			Collections.addAll( detailedItems, zipped.toBlocking().first() );
 			index += threadSize;
 		}
+		span.finish();
 		return detailedItems;
 	}
 	
-	// @HystrixCommand(commandKey = "AllProducts", fallbackMethod = "getFallbackProducts", commandProperties = {
-    //         @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
-	// })
+	@HystrixCommand(commandKey = "AllProducts", fallbackMethod = "getFallbackProducts", commandProperties = {
+            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
+	})
 	public List<Product> findAll(Pageable pageable) {
+		Span span = tracer.buildSpan("findAll").start();
+		log.debug("Entering InventoryRepository.findAll()");
 		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(inventoryServiceURL)
 				.queryParam("page", pageable.getPageNumber())
 				.queryParam("size", pageable.getPageSize())
@@ -74,13 +87,16 @@ public class InventoryRepository extends GenericRepository{
 						  new ParameterizedTypeReference<List<Product>>() {}
 				  );
 		List<Product> orders = responseEntity.getBody();
+		span.finish();
 		return orders;
 	}
 	
-	// @HystrixCommand(commandKey = "Products", fallbackMethod = "getFallbackProduct", commandProperties = {
-    //         @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
-	// })
+	@HystrixCommand(commandKey = "Products", fallbackMethod = "getFallbackProduct", commandProperties = {
+            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
+	})
 	public Product getProductById(Long id) {
+		Span span = tracer.buildSpan("getProductById").start();
+		log.debug("Entering InventoryRepository.getProductById()");
 		UriComponentsBuilder builder = UriComponentsBuilder
 				.fromHttpUrl(inventoryServiceURL)
 				.pathSegment( "{product}");		
@@ -91,14 +107,18 @@ public class InventoryRepository extends GenericRepository{
 		if (p == null) {
 			throw new RuntimeException();
 		}
+		log.debug(p.toString());
+		span.finish();
 		return p;
 	}
 	
 	public List<Product> getFallbackProducts(Pageable pageable, Throwable e) {
+		log.warn("Failed to obtain Products, " + e.getMessage());
 		return new ArrayList<Product>();
 	}
 	
 	public Product getFallbackProduct(Long id, Throwable e) {
+		log.warn("Failed to obtain Product, " + e.getMessage() + " for Product with id " + id);
 		Product p = new Product();
 		p.setId(id);
 		p.setName("Unknown");

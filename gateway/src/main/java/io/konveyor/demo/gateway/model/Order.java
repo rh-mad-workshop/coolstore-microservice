@@ -2,46 +2,31 @@ package io.konveyor.demo.gateway.model;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 import java.util.function.Function;
 
 import io.konveyor.demo.gateway.serialization.CustomerDeserializer;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
+import lombok.Data;
+import lombok.ToString;
+
+@ToString(exclude = "items")
+@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Order implements Serializable {
 
 	private static final long serialVersionUID = -1703065930151811237L;
 	private Long id;
-
-	public Long getId() {
-		return this.id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public String getDate() {
-		return this.date;
-	}
-
-	public void setDate(String date) {
-		this.date = date;
-	}
-
-	public List<OrderItem> getItems() {
-		return this.items;
-	}
-
-	public void setItems(List<OrderItem> items) {
-		this.items = items;
-	}
 	private Customer customer;
-	private String date;
+	@JsonFormat
+	(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy", timezone="CET")
+	private Date date;
 	private List<OrderItem> items;
 	
 	public BigDecimal getTotalAmmount() {
