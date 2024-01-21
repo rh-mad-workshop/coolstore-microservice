@@ -103,3 +103,11 @@ ENV_2=http://2.myendpoint.com
 ```
 
 With that in place, you can use the values in your code like `console.log(process.env.ENV_1);`
+
+## Workaround for the npm build failure
+
+When you fail to build the app locally with `error:0308010C:digital envelope routines::unsupported in nodejs`, run the following command.
+
+```
+export NODE_OPTIONS=--openssl-legacy-provider
+```
