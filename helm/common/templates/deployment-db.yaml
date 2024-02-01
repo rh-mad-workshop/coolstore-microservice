@@ -1,0 +1,46 @@
+{{- if .Values.app.connectsToDB }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/part-of: coolstore
+    app.openshift.io/runtime: postgresql
+  name: {{ .Values.inventoryDb.name }}
+spec:
+  replicas: {{ .Values.inventoryDb.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.inventoryDb.name }}
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.inventoryDb.name }}
+        deployment: {{ .Values.inventoryDb.name }}
+    spec:
+      containers:
+        - image: {{ .Values.inventoryDb.image }}
+          imagePullPolicy: {{ .Values.inventoryDb.imagePullPolicy }}
+          name: {{ .Values.inventoryDb.name }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          resources: {}
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  key: database-user
+                  name: {{ .Values.inventoryDb.secret.name }}
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: database-password
+                  name: {{ .Values.inventoryDb.secret.name }}
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  key: database-name
+                  name: {{ .Values.inventoryDb.secret.name }}
+{{ end }}

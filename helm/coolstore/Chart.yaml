@@ -1,0 +1,32 @@
+apiVersion: v2
+name: coolstore
+description: Helm chart to install the coolstore microservice
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: common
+    version: 0.1.0
+    alias: customers
+    condition: customers.enabled
+    repository: file://../common
+  - name: common
+    version: 0.1.0
+    alias: orders
+    condition: orders.enabled
+    repository: file://../common
+  - name: common
+    version: 0.1.0
+    alias: gateway
+    condition: gateway.enabled
+    repository: file://../common
+  - name: common
+    version: 0.1.0
+    alias: inventory
+    condition: inventory.enabled
+    repository: file://../common
+  - name: common
+    version: 0.1.0
+    alias: frontend
+    condition: frontend.enabled
+    repository: file://../common

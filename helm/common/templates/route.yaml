@@ -1,0 +1,25 @@
+{{- if .Values.app.route }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app.kubernetes.io/component: {{ .Values.app.name }}
+    app.kubernetes.io/instance: {{ .Values.app.name }}
+    app.kubernetes.io/name: {{ .Values.app.name }}
+    app.kubernetes.io/part-of: {{ .Values.app.name }}
+    app.openshift.io/runtime-version: '1.0'
+  annotations:
+    app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"Deployment","name":"gateway"}]'
+spec:
+  port:
+    targetPort: {{ .Values.runtime.portName }}
+  to:
+    kind: Service
+    name: {{ .Values.app.name }}
+    weight: 100
+  wildcardPolicy: None
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{ end }}

@@ -1,0 +1,73 @@
+customers:
+  enabled: true
+  app:
+    name: customers
+    runtime: tomcat
+    image: quay.io/openshiftlabs/coolstore-microservice-customers:1.0
+    imagePullPolicy: IfNotPresent
+  runtime:
+    containerPort: 8080
+    servicePort: 8080
+    portName: http
+
+orders:
+  enabled: true
+  app:
+    name: orders
+    runtime: spring-boot
+    image: quay.io/openshiftlabs/coolstore-microservice-orders:1.0
+    imagePullPolicy: IfNotPresent
+  runtime:
+    containerPort: 8080
+    servicePort: 8080
+    portName: http
+
+gateway:
+  enabled: true
+  app:
+    name: gateway
+    runtime: spring-boot
+    image: quay.io/openshiftlabs/coolstore-microservice-gateway:1.0
+    imagePullPolicy: IfNotPresent
+    connectsToSvcs: true
+  runtime:
+    containerPort: 8080
+    servicePort: 8080
+    portName: http
+
+frontend:
+  enabled: true
+  app:
+    name: frontend
+    runtime: nodejs
+    image: quay.io/openshiftlabs/coolstore-microservice-frontend:1.0
+    imagePullPolicy: IfNotPresent
+    connectsTogateway: true
+    route: true
+  runtime:
+    containerPort: 8080
+    servicePort: 8080
+    portName: http
+
+inventory:
+  enabled: true
+  app:
+    name: inventory
+    runtime: quarkus
+    image: quay.io/openshiftlabs/coolstore-microservice-inventory:1.0
+    imagePullPolicy: IfNotPresent
+    connectsToDB: true
+  runtime:
+    containerPort: 8080
+    servicePort: 8080
+    portName: http
+  inventoryDb:
+    name: postgresql-inventory
+    replicaCount: 1
+    image: quay.io/openshiftlabs/coolstore-microservice-inventory-postgresql:10-el8
+    imagePullPolicy: IfNotPresent 
+    pgsqlUser: inventory
+    pgsqlPassword: inventory
+    pgsqlDatabase: inventory
+    secret:
+      name: postgresql-inventory

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.app.name }}
+    app.kubernetes.io/component: {{ .Values.app.name }}
+    app.kubernetes.io/instance: {{ .Values.app.name }}
+    app.kubernetes.io/name: {{ .Values.app.name }}
+    app.kubernetes.io/part-of: coolstore
+    app.openshift.io/runtime: {{ .Values.app.runtime }}
+    {{- if .Values.app.connectsToDB }}
+    app.openshift.io/connects-to: '[{"apiVersion":"apps.openshift.io/v1","kind":"Deployment","name":"inventory"},{"apiVersion":"apps.openshift.io/v1","kind":"Deployment","name":"postgresql-inventory"}]'
+    {{- else if .Values.app.connectsToSvcs }}
+    app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"Deployment","name":"customers"},{"apiVersion":"apps/v1","kind":"Deployment","name":"orders"},{"apiVersion":"apps/v1","kind":"Deployment","name":"inventory"}]'
+    {{- else if .Values.app.connectsTogateway }}
+    app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"Deployment","name":"gateway"}]'
+    {{- end }}
+  name: {{ .Values.app.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+        deployment: {{ .Values.app.name }}
+    spec:
+      containers:
+        - image: {{ .Values.app.image }}
+          imagePullPolicy: {{ .Values.app.imagePullPolicy }}
+          name: {{ .Values.app.name }}
+          ports:
+            - containerPort: {{ .Values.runtime.containerPort }}
+              protocol: TCP
+              name: http
+          resources: {}
+      restartPolicy: Always
