@@ -3,7 +3,6 @@ package com.redhat.coolstore.inventory.controller;
 import java.util.Arrays;
 import java.util.List;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -14,43 +13,40 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import org.jboss.logging.Logger;
-import com.redhat.coolstore.inventory.model.Product;
-import com.redhat.coolstore.inventory.service.IProductService;
-
+import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Sort;
 
+import com.redhat.coolstore.inventory.model.Product;
+import com.redhat.coolstore.inventory.service.IProductService;
+
 
 @Path("/products")
-@ApplicationScoped
+@Produces(MediaType.APPLICATION_JSON)
 public class ProductController {
-	private static Logger logger = Logger.getLogger( ProductController.class.getName() );
-	
 	@Inject
 	IProductService productService;
-	
+
 	@GET
-    @Path("/{id}")
-    @Produces({ MediaType.APPLICATION_JSON })
-    public Product getById(@PathParam("id") Long id) {
-		Product p;
-		logger.debug("Entering ProductController.getById()");
-		p = productService.findById(id);
+	@Path("/{id}")
+	public Product getById(@PathParam("id") Long id) {
+		Log.debug("Entering ProductController.getById()");
+		var p = productService.findById(id);
+
 		if (p == null) {
-			logger.error("Product not found");
+			Log.error("Product not found");
 		}
-		return p;    
-    }
-	
+
+		return p;
+	}
+
 	@GET
-	@Produces({ MediaType.APPLICATION_JSON })
 	public Response findAll(@QueryParam("sort") String sortString,
-            @QueryParam("page") @DefaultValue("0") int pageIndex,
-            @QueryParam("size") @DefaultValue("20") int pageSize) {
+		@QueryParam("page") @DefaultValue("0") int pageIndex,
+		@QueryParam("size") @DefaultValue("20") int pageSize) {
 		Page page = Page.of(pageIndex, pageSize);
-        Sort sort = getSortFromQuery(sortString);
-        return Response.ok(productService.findAll(page, sort)).build();
+		Sort sort = getSortFromQuery(sortString);
+		return Response.ok(productService.findAll(page, sort)).build();
 	}
 
 	/**
@@ -61,7 +57,7 @@ public class ProductController {
 	private Sort getSortFromQuery(String sortString) {
 		if (sortString != null && !sortString.equals("")) {
 			List<String> sortQuery = Arrays.asList(sortString.split(","));
-			if (sortQuery == null || sortQuery.size()== 0 || sortQuery.size() >2) {	
+			if (sortQuery == null || sortQuery.size()== 0 || sortQuery.size() >2) {
 				return null;
 			}
 			else {
@@ -78,7 +74,7 @@ public class ProductController {
 						}
 					}
 				}
-			}	
+			}
 		}
 		return null;
 	}

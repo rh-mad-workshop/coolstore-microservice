@@ -8,13 +8,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
-import io.quarkus.runtime.annotations.RegisterForReflection;
-
 @Entity
 @Table(name = "products")
-@RegisterForReflection
-public class Product extends PanacheEntityBase {
+public class Product {
 	
 	@Id
     @SequenceGenerator(
@@ -30,7 +26,20 @@ public class Product extends PanacheEntityBase {
 	
 	@Column(length = 255)
 	private String description;
-	
+
+	public Product() {
+
+	}
+
+	public Product(String name, String description) {
+		this(null, name, description);
+	}
+
+	public Product(Long id, String name, String description) {
+		this.id = id;
+		this.name = name;
+		this.description = description;
+	}
 	
 	public Long getId() {
 		return id;
