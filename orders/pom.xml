@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-		
+
 	<groupId>io.konveyor.demo</groupId>
 	<artifactId>orders</artifactId>
 	<version>2.0.0-SNAPSHOT</version>
@@ -11,36 +11,36 @@
 		<maven.compiler.version>3.11.0</maven.compiler.version>
 		<maven.compiler.release>17</maven.compiler.release>
 		<spring-cloud.bom.version>2021.0.3</spring-cloud.bom.version>
-        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-        <spring-boot.version>2.7.11</spring-boot.version>
-        <dekorate.version>2.11.5.redhat-00008</dekorate.version>
+		<maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+		<spring-boot.version>3.2.4</spring-boot.version>
+		<dekorate.version>2.11.5.redhat-00017</dekorate.version>
 	</properties>
 
 	<dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.dekorate</groupId>
-                <artifactId>dekorate-spring-bom</artifactId>
-                <version>${dekorate.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.dekorate</groupId>
+				<artifactId>dekorate-spring-bom</artifactId>
+				<version>${dekorate.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>${spring-boot.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
-            <groupId>io.dekorate</groupId>
-            <artifactId>openshift-spring-starter</artifactId>
-            <version>${dekorate.version}</version>
-        </dependency>
+			<groupId>io.dekorate</groupId>
+			<artifactId>openshift-spring-starter</artifactId>
+			<version>${dekorate.version}</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -54,13 +54,19 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
+
+		<!--Distributed tracing	-->
 		<dependency>
-			<groupId>io.opentracing.contrib</groupId>
-			<artifactId>opentracing-spring-jaeger-web-starter</artifactId>
-			<version>3.3.1</version>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
 		</dependency>
 
 		<!-- Testing -->
@@ -92,80 +98,80 @@
 	</dependencies>
 
 	<build>
-    <!-- Used only to replace ${db.name} in index.html with the corresponding Database name -->
-        <resources>
-        <resource>
-            <directory>src/main/resources</directory>
-            <filtering>false</filtering>
-        </resource>
-        <resource>
-            <directory>src/main/resources/static</directory>
-            <filtering>true</filtering>
-            <targetPath>static</targetPath>
-        </resource>
-        </resources>
-        <testResources>
-        <testResource>
-            <directory>src/test/resources</directory>
-            <filtering>true</filtering>
-        </testResource>
-        </testResources>
-        <plugins>
-          <plugin>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>${maven.compiler.version}</version>
-            <configuration>
-              <release>${maven.compiler.release.version}</release>
-            </configuration>
-          </plugin>
-          <plugin>            
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <version>${spring-boot.version}</version>
-            <configuration/>
-            <executions>
-            <execution>
-                <goals>
-                <goal>repackage</goal>
-                </goals>
-            </execution>
-            </executions>
-        </plugin>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>${maven-surefire-plugin.version}</version>
-        </plugin>
-        </plugins>
-    </build>
+		<!-- Used only to replace ${db.name} in index.html with the corresponding Database name -->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>src/main/resources/static</directory>
+				<filtering>true</filtering>
+				<targetPath>static</targetPath>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<filtering>true</filtering>
+			</testResource>
+		</testResources>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven.compiler.version}</version>
+				<configuration>
+					<release>${maven.compiler.release.version}</release>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring-boot.version}</version>
+				<configuration/>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${maven-surefire-plugin.version}</version>
+			</plugin>
+		</plugins>
+	</build>
 
-    <profiles>
-        <profile>
-            <id>local</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
-    <repositories>
-        <repository>
-        <id>redhat-ga</id>
-        <name>Red Hat GA Repository</name>
-        <url>https://maven.repository.redhat.com/ga/</url>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-        <id>redhat-ga</id>
-        <name>Red Hat GA Repository</name>
-        <url>https://maven.repository.redhat.com/ga/</url>
-        </pluginRepository>
-    </pluginRepositories>
+	<profiles>
+		<profile>
+			<id>local</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>com.h2database</groupId>
+					<artifactId>h2</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+	<repositories>
+		<repository>
+			<id>redhat-ga</id>
+			<name>Red Hat GA Repository</name>
+			<url>https://maven.repository.redhat.com/ga/</url>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>redhat-ga</id>
+			<name>Red Hat GA Repository</name>
+			<url>https://maven.repository.redhat.com/ga/</url>
+		</pluginRepository>
+	</pluginRepositories>
 </project>

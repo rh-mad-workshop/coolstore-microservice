@@ -1,42 +1,43 @@
 package io.konveyor.demo.orders.model;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "order_items")
-public class OrderItem implements Serializable {
-
-	private static final long serialVersionUID = 2888227823793439361L;
+public class OrderItem {
 	@Id
-    @SequenceGenerator(
-            name = "orderItemSequence",
-            sequenceName = "orderitem_id_seq",
-            allocationSize = 1,
-            initialValue = 7)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderItemSequence")
+	@SequenceGenerator(
+		name = "orderItemSequence",
+		sequenceName = "orderitem_id_seq",
+		allocationSize = 1,
+		initialValue = 7
+	)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderItemSequence")
 	private Long id;
-	
+
 	@JsonBackReference
 	@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
+	@JoinColumn(name = "order_id")
 	private Order order;
-	
+
 	@Column(name = "product_uid")
 	private Long productUID;
+
+	private Integer quantity;
+	private BigDecimal price;
 
 	public Long getId() {
 		return this.id;
@@ -77,9 +78,4 @@ public class OrderItem implements Serializable {
 	public void setPrice(BigDecimal price) {
 		this.price = price;
 	}
-	
-	private Integer quantity;
-	
-	private BigDecimal price;
-
 }

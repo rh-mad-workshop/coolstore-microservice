@@ -1,46 +1,44 @@
 package io.konveyor.demo.orders.model;
 
-import java.io.Serializable;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.SequenceGenerator;
-import javax.persistence.Table;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "orders")
-public class Order implements Serializable {
-
-	private static final long serialVersionUID = -2539346800640467934L;
-	
+public class Order{
 	@Id
-    @SequenceGenerator(
-            name = "orderSequence",
-            sequenceName = "order_id_seq",
-            allocationSize = 1,
-            initialValue = 7)
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderSequence")
+	@SequenceGenerator(
+		name = "orderSequence",
+		sequenceName = "order_id_seq",
+		allocationSize = 1,
+		initialValue = 7
+	)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderSequence")
 	private Long id;
-	
+
 	@Column(name = "customer_uid")
 	private Long customerUID;
-	
+
 	@Column(name = "order_date")
 	private String date;
-	
+
 	@JsonManagedReference
 	@OneToMany(
-	        mappedBy = "order", 
-	        cascade = CascadeType.ALL, 
-	        orphanRemoval = true)
+		mappedBy = "order",
+		cascade = CascadeType.ALL,
+		orphanRemoval = true
+	)
 	private List<OrderItem> items;
 
 	public Long getId() {
@@ -74,5 +72,4 @@ public class Order implements Serializable {
 	public void setItems(List<OrderItem> items) {
 		this.items = items;
 	}
-
 }
