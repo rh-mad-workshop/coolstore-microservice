@@ -1,8 +1,9 @@
 package io.konveyor.demo.orders.repository;
 
-import io.konveyor.demo.orders.model.Order;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface OrderRepository extends PagingAndSortingRepository<Order, Long> {
+import io.konveyor.demo.orders.model.Order;
+
+public interface OrderRepository extends JpaRepository<Order, Long> {
 
 }
