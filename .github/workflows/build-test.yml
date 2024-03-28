@@ -25,7 +25,7 @@ jobs:
           - orders
           - inventory
           - gateway
-    name: "build-test-${{ matrix.project.name }}-${{ matrix.java }}"
+    name: "build-test-${{ matrix.project }}-${{ matrix.java }}"
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +36,6 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: "build-test-jvm-${{ matrix.project.name }}-java-${{ matrix.java }}"
-        working-directory: ${{ matrix.project.name }}
+      - name: "build-test-jvm-${{ matrix.project }}-java-${{ matrix.java }}"
+        working-directory: ${{ matrix.project }}
         run: ./mvnw -B clean verify -Dmaven.compiler.release=${{ matrix.java }}
