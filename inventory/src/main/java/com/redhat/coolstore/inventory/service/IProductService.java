@@ -2,14 +2,14 @@ package com.redhat.coolstore.inventory.service;
 
 import java.util.List;
 
-import com.redhat.coolstore.inventory.model.Product;
-
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Sort;
 
+import com.redhat.coolstore.inventory.model.Product;
+
 public interface IProductService {
 	
-	public Product findById(Long id);
+	Product findById(Long id);
 	
-	public List<Product> findAll(Page page, Sort sort);
+	List<Product> findAll(Page page, Sort sort);
 }
