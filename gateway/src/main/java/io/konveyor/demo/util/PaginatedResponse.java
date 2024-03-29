@@ -1,20 +1,17 @@
 package io.konveyor.demo.util;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PaginatedResponse<T> extends PageImpl<T> {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = -8776767744571311395L;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class PaginatedResponse<T> extends PageImpl<T> {
 	@JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public PaginatedResponse(@JsonProperty("content") List<T> content,
                             @JsonProperty("number") int number,

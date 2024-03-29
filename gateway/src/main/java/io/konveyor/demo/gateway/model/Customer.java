@@ -1,16 +1,17 @@
 package io.konveyor.demo.gateway.model;
 
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Customer implements Serializable{
-
-	private static final long serialVersionUID = -647167746768043097L;
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
+public class Customer {
 	private Long id;
 	private String username;
 	private String name;
@@ -19,5 +20,4 @@ public class Customer implements Serializable{
 	private String zipCode;
 	private String city;
 	private String country;
-	
 }
