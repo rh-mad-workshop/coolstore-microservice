@@ -1,41 +1,36 @@
 package io.konveyor.demo.gateway.controller;
 
-import static io.restassured.RestAssured.*;
-import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.GregorianCalendar;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
 import io.konveyor.demo.gateway.model.Customer;
 import io.konveyor.demo.gateway.model.Order;
 import io.konveyor.demo.gateway.model.OrderItem;
 import io.konveyor.demo.gateway.model.Product;
 import io.konveyor.demo.gateway.service.OrdersService;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import io.restassured.RestAssured;
-
-@RunWith(SpringRunner.class)
-@SpringBootTest(
-  webEnvironment = WebEnvironment.RANDOM_PORT)
-@TestPropertySource(
-		  locations = "classpath:application-test.properties")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 public class OrdersControllerTest {
-	
-	@Value("${local.server.port}")
-    private int port;
-	
+	@Autowired
+	private MockMvc mockMvc;
+
 	@MockBean
 	private OrdersService service;
 	
@@ -47,14 +42,14 @@ public class OrdersControllerTest {
 	
 	private Customer customer;
 	
-	@Before
-	public void setUp() {
+	@BeforeEach
+	void setUp() {
 		order = new Order();
-		order.setId(new Long(1));
+		order.setId(1L);
 		order.setDate(new GregorianCalendar(2018, 4, 30).getTime());
 		
 		customer = new Customer();
-		customer.setId(new Long(1));
+		customer.setId(1L);
 		customer.setName("Test Customer");
 		customer.setSurname("Test Customer");
 		customer.setUsername("testcustomer");
@@ -64,7 +59,7 @@ public class OrdersControllerTest {
 		customer.setAddress("Test Address");
 		
 		product = new Product();
-		product.setId(new Long(1));
+		product.setId(1L);
 		product.setName("Test Product");
 		product.setDescription("Test Description");
 		
@@ -73,48 +68,50 @@ public class OrdersControllerTest {
 		item.setQuantity(3);
 		item.setProduct(product);
 		
-		List<OrderItem> items = new ArrayList<OrderItem>();
-		items.add(item);
-		
+		List<OrderItem> items = List.of(item);
+
 		order.setItems(items);
 		order.setCustomer(customer);
-		
-		RestAssured.baseURI = String.format("http://localhost:%d/orders", port);
 	}
 	
 	@Test
-	public void getByIdExisting() {
-		Mockito.when(service.getById(new Long (1)))
+	void getByIdExisting() throws Exception {
+		Mockito.when(service.getById(1L))
 	      .thenReturn(order);
-		
-		when().get(new Long(1).toString())
-			.then()
-			.statusCode(200)
-			.body("id", is(1))
-			.body("date", is("30-05-2018"))
-			.body("customer.id", is(1))
-			.body("customer.name", is("Test Customer"))
-			.body("customer.surname", is("Test Customer"))
-			.body("customer.username", is("testcustomer"))
-			.body("customer.zipCode", is("28080"))
-			.body("customer.city", is("Madrid"))
-			.body("customer.country", is("Spain"))
-			.body("customer.address", is("Test Address"))
-			.body("items.size()", is(1))
-			.body("items.get(0).quantity", is(3))
-			.body("items.get(0).price", is(30))
-			.body("items.get(0).product.id", is(1))
-			.body("items.get(0).product.name", is("Test Product"))
-			.body("items.get(0).product.description", is("Test Description"));
+
+		this.mockMvc.perform(get("/orders/{id}", 1L))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.id").value(1L))
+			.andExpect(jsonPath("$.date").value("30-05-2018"))
+			.andExpect(jsonPath("$.customer.id").value(1L))
+			.andExpect(jsonPath("$.customer.name").value("Test Customer"))
+			.andExpect(jsonPath("$.customer.surname").value("Test Customer"))
+			.andExpect(jsonPath("$.customer.username").value("testcustomer"))
+			.andExpect(jsonPath("$.customer.zipCode").value("28080"))
+			.andExpect(jsonPath("$.customer.city").value("Madrid"))
+			.andExpect(jsonPath("$.customer.country").value("Spain"))
+			.andExpect(jsonPath("$.customer.address").value("Test Address"))
+			.andExpect(jsonPath("$.items.size()").value(1))
+			.andExpect(jsonPath("$.items[0].quantity").value(3))
+			.andExpect(jsonPath("$.items[0].price").value(30))
+			.andExpect(jsonPath("$.items[0].product.id").value(1L))
+			.andExpect(jsonPath("$.items[0].product.name").value("Test Product"))
+			.andExpect(jsonPath("$.items[0].product.description").value("Test Description"));
+
+		Mockito.verify(service).getById(1L);
+		Mockito.verifyNoMoreInteractions(service);
 	}
 	
 	@Test
-	public void getByIdNonExisting() {
-		Mockito.when(service.getById(new Long (1)))
+	void getByIdNonExisting() throws Exception {
+		Mockito.when(service.getById(1L))
 	      .thenReturn(null);
-		
-		when().get(new Long(1).toString())
-		.then()
-		.statusCode(404);
+
+		this.mockMvc.perform(get("/orders/{id}", 1L))
+			.andExpect(status().isNotFound());
+
+		Mockito.verify(service).getById(1L);
+		Mockito.verifyNoMoreInteractions(service);
 	}
 }

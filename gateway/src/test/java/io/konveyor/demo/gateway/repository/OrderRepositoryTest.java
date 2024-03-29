@@ -1,113 +1,136 @@
 package io.konveyor.demo.gateway.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.commons.lang.SerializationUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JAutoConfiguration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerMetricsAutoConfiguration;
+import io.github.resilience4j.springboot3.retry.autoconfigure.RetryAutoConfiguration;
+import io.github.resilience4j.springboot3.timelimiter.autoconfigure.TimeLimiterAutoConfiguration;
 import io.konveyor.demo.gateway.model.Customer;
 import io.konveyor.demo.gateway.model.Order;
 import io.konveyor.demo.gateway.model.OrderItem;
 import io.konveyor.demo.gateway.model.Product;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.RestTemplate;
 
-import io.jaegertracing.Configuration;
-import io.opentracing.Tracer;
-
-@RunWith(SpringRunner.class)
-public class OrderRepositoryTest {
-	
-	@TestConfiguration
-    static class CustomerRepositoryTestContextConfiguration {
-		@Bean
-	    public Tracer tracer() {
-	    	return new Configuration("gateway").getTracer();
-	    }
-		
-		@Bean
-		public static PropertySourcesPlaceholderConfigurer properties() {
-			final PropertySourcesPlaceholderConfigurer pspc = 
-					new PropertySourcesPlaceholderConfigurer();
-			final Properties properties = new Properties();
-			properties.setProperty("services.orders.url", "http://orders.svc:8080/orders");
-			pspc.setProperties(properties);
-			return pspc;
-		}
-		
-		@Bean
-		public OrderRepository repository() {
-			return new OrderRepository();
-		}
-	}
-	
-	@MockBean
-	RestTemplate restTemplate;
+@RestClientTest(
+	components = OrderRepository.class,
+	properties = "services.orders.url=/orders"
+)
+@ImportAutoConfiguration({ AopAutoConfiguration.class, Resilience4JAutoConfiguration.class, RetryAutoConfiguration.class, CircuitBreakerAutoConfiguration.class, CircuitBreakerMetricsAutoConfiguration.class, TimeLimiterAutoConfiguration.class })
+@AutoConfigureObservability
+class OrderRepositoryTest {
+	@Autowired
+	private MockRestServiceServer server;
 	
 	@Autowired
-	OrderRepository repository;
-	
+	private OrderRepository repository;
+
 	private Order order;
 	
-	@Before
-	public void setup() {
+	@BeforeEach
+	void setup() {
 		order = new Order();
-		order.setId(new Long(1));
-		order.setDate(new GregorianCalendar(2018, 4, 30).getTime());
+		order.setId(11L);
+		order.setDate(Date.from(LocalDate.of(2018, 04, 30).atStartOfDay(ZoneId.of("CET")).toInstant()));
 		
 		Product p = new Product();
-		p.setId(new Long(1));
+		p.setId(1L);
 		
 		Customer c = new Customer();
-		c.setId(new Long(1));
+		c.setId(1L);
 		
 		OrderItem i = new OrderItem();
 		i.setPrice(new BigDecimal(30));
 		i.setQuantity(3);
 		i.setProduct(p);
 		
-		List<OrderItem> items = new ArrayList<OrderItem>();
-		items.add(i);
-		
+		List<OrderItem> items = List.of(i);
+
 		order.setItems(items);
 		order.setCustomer(c);
 	}
 	
 	@Test
-	public void getOrderByIdExistingTest() {
-		Mockito.when(restTemplate.getForObject("http://orders.svc:8080/orders/1", Order.class))
-			.thenReturn((Order)SerializationUtils.clone(order));
+	void getOrderByIdExistingTest() {
+		var json = """
+			{
+			  "id": 11,
+			  "date": "30-04-2018",
+			  "items": [
+			    {
+			      "quantity": 3,
+			      "price": 30,
+			      "productUID": 1
+			    }
+			  ],
+			  "totalAmmount": 90,
+			  "customerUID": 1
+			}
+			""";
+
+		this.server.expect(requestTo("/orders/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+		Order found = repository.getOrderById(1L);
 		
-		Order found = repository.getOrderById(new Long(1));
-		
-		assertThat(found).isEqualTo(order);
+		assertThat(found)
+			.usingRecursiveComparison()
+			.isEqualTo(order);
+
+		this.server.verify();
 	}
 	
 	@Test
-	public void getOrderByIdNonExistingTest() {
-		Mockito.when(restTemplate.getForObject("http://orders.svc:8080/orders/1", Order.class))
-		.thenReturn(null);
+	void getOrderByIdNonExistingTest() {
+		this.server.expect(requestTo("/orders/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess());
+
+		Order found = repository.getOrderById(1L);
 		
-		Order found = repository.getOrderById(new Long(1));
-		
-		assertThat(found).isNull();
+		assertThat(found)
+			.isNull();
+		this.server.verify();
 	}
 	
 	@Test
-	public void getFallbackCustomerTest() {
-		assertThat(repository.getFallbackOrder(new Long(1), new Exception())).isNull();
+	void getFallbackCustomerTest() {
+		assertThat(repository.getFallbackOrder(1L, new Exception())).isNull();
+	}
+
+	@Test
+	void fallsBack() {
+		var fallbackOrder = repository.getFallbackOrder(1L, new Exception());
+
+		this.server.expect(requestTo("/orders/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withServerError());
+
+		assertThat(repository.getOrderById(1L))
+			.usingRecursiveComparison()
+			.isEqualTo(fallbackOrder);
+
+		this.server.verify();
 	}
 }

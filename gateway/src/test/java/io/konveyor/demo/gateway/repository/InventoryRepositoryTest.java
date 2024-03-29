@@ -1,63 +1,49 @@
 package io.konveyor.demo.gateway.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.commons.lang.SerializationUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JAutoConfiguration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerMetricsAutoConfiguration;
+import io.github.resilience4j.springboot3.retry.autoconfigure.RetryAutoConfiguration;
+import io.github.resilience4j.springboot3.timelimiter.autoconfigure.TimeLimiterAutoConfiguration;
 import io.konveyor.demo.gateway.model.OrderItem;
 import io.konveyor.demo.gateway.model.Product;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
-import io.jaegertracing.Configuration;
-import io.opentracing.Tracer;
-
-@RunWith(SpringRunner.class)
-public class InventoryRepositoryTest {
-	
-	@TestConfiguration
-    static class CustomerRepositoryTestContextConfiguration {
-		@Bean
-        public Tracer tracer() {
-        	return new Configuration("gateway").getTracer();
-        }
-		
-		@Bean
-		public static PropertySourcesPlaceholderConfigurer properties() {
-			final PropertySourcesPlaceholderConfigurer pspc = 
-					new PropertySourcesPlaceholderConfigurer();
-			final Properties properties = new Properties();
-			properties.setProperty("services.inventory.url", "http://inventory.svc:8080/products");
-			properties.setProperty("hystrix.threadpool.ProductsThreads.coreSize", "20");
-			pspc.setProperties(properties);
-			return pspc;
-		}
-		
-		@Bean
-		public InventoryRepository repository() {
-			return new InventoryRepository();
-		}
-	}
-	
-	@MockBean
-	RestTemplate restTemplate;
+@RestClientTest(
+	components = InventoryRepository.class,
+	properties = "services.inventory.url=/products"
+)
+@ImportAutoConfiguration({ AopAutoConfiguration.class, Resilience4JAutoConfiguration.class, RetryAutoConfiguration.class, CircuitBreakerAutoConfiguration.class, CircuitBreakerMetricsAutoConfiguration.class, TimeLimiterAutoConfiguration.class })
+@AutoConfigureObservability
+class InventoryRepositoryTest {
+	@Autowired
+	private MockRestServiceServer server;
 	
 	@Autowired
-	InventoryRepository repository;
+	private InventoryRepository repository;
+
+	@Autowired
+	private ObjectMapper objectMapper;
 	
 	private List<OrderItem> items;
 	
@@ -65,42 +51,40 @@ public class InventoryRepositoryTest {
 	
 	private Product product2;
 	
-	@Before
-	public void setup() {
+	@BeforeEach
+	void setup() {
 		product1 = new Product();
-		product1.setId(new Long(1));
+		product1.setId(1L);
 		product1.setName("Test Product 1");
 		product1.setDescription("Test Description 1");
 		
 		product2 = new Product();
-		product2.setId(new Long(2));
+		product2.setId(2L);
 		product2.setName("Test Product 2");
 		product2.setDescription("Test Description 2");
 		
 		OrderItem item1 = new OrderItem();
 		item1.setPrice(new BigDecimal(30));
 		item1.setQuantity(3);
-		item1.setProduct((Product)SerializationUtils.clone(product1));
+		item1.setProduct(new Product(product1.getId(), product1.getName(), product1.getDescription()));
 		
 		OrderItem item2 = new OrderItem();
 		item2.setPrice(new BigDecimal(50));
 		item2.setQuantity(2);
-		item2.setProduct((Product)SerializationUtils.clone(product2));
+		item2.setProduct(new Product(product2.getId(), product2.getName(), product2.getDescription()));
 		
-		items = new ArrayList<OrderItem>();
-		
-		items.add(item1);
-		items.add(item2);
+		items = List.of(item1, item2);
+
+		this.server.reset();
 	}
 	
 	@Test
-	public void getProductDetailsExistingTest() {
-		
+	void getProductDetailsExistingTest() throws JsonProcessingException {
 		Product p1 = new Product();
-		p1.setId(new Long(1));
+		p1.setId(1L);
 		
 		Product p2 = new Product();
-		p2.setId(new Long(2));
+		p2.setId(2L);
 		
 		OrderItem i1 = new OrderItem();
 		i1.setPrice(new BigDecimal(30));
@@ -112,30 +96,32 @@ public class InventoryRepositoryTest {
 		i2.setQuantity(2);
 		i2.setProduct(p2);
 		
-		List<OrderItem> incomplete = new ArrayList<OrderItem>();
+		List<OrderItem> incomplete = List.of(i1, i2);
+
+		this.server.expect(requestTo("/products/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(objectMapper.writeValueAsString(product1), MediaType.APPLICATION_JSON));
+
+		this.server.expect(requestTo("/products/2"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(objectMapper.writeValueAsString(product2), MediaType.APPLICATION_JSON));
+
+		var found = repository.getProductDetails(incomplete);
 		
-		incomplete.add(i1);
-		incomplete.add(i2);
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/1", Product.class))
-		.thenReturn(product1);
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/2", Product.class))
-		.thenReturn(product2);
-		
-		List<OrderItem> found = repository.getProductDetails(incomplete);
-		
-		assertThat(found).isEqualTo(items);
+		assertThat(found)
+			.usingRecursiveFieldByFieldElementComparator()
+			.isEqualTo(items);
+
+		this.server.verify();
 	}
 	
 	@Test
-	public void getProductDetailsOneNonExistingTest() {
-		
+	void getProductDetailsOneNonExistingTest() throws JsonProcessingException {
 		Product p1 = new Product();
-		p1.setId(new Long(1));
+		p1.setId(1L);
 		
 		Product p2 = new Product();
-		p2.setId(new Long(2));
+		p2.setId(2L);
 		
 		OrderItem i1 = new OrderItem();
 		i1.setPrice(new BigDecimal(30));
@@ -147,32 +133,34 @@ public class InventoryRepositoryTest {
 		i2.setQuantity(2);
 		i2.setProduct(p2);
 		
-		List<OrderItem> incomplete = new ArrayList<OrderItem>();
-		
-		incomplete.add(i1);
-		incomplete.add(i2);
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/1", Product.class))
-		.thenReturn(null);
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/2", Product.class))
-		.thenReturn(product2);
-		
-		List<OrderItem> found = repository.getProductDetails(incomplete);
+		List<OrderItem> incomplete = List.of(i1, i2);
+
+		server.expect(requestTo("/products/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess());
+
+		server.expect(requestTo("/products/2"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(objectMapper.writeValueAsString(product2), MediaType.APPLICATION_JSON));
+
+		var found = repository.getProductDetails(incomplete);
 		
 		items.get(0).setProduct(p1);
-		
-		assertThat(found).isEqualTo(items);
+
+		assertThat(found)
+			.usingRecursiveFieldByFieldElementComparator()
+			.isEqualTo(items);
+
+		server.verify();
 	}
 	
 	@Test
-	public void getProductDetailsRestExceptionTest() {
-		
+	void getProductDetailsRestExceptionTest() {
 		Product p1 = new Product();
-		p1.setId(new Long(1));
+		p1.setId(1L);
 		
 		Product p2 = new Product();
-		p2.setId(new Long(2));
+		p2.setId(2L);
 		
 		OrderItem i1 = new OrderItem();
 		i1.setPrice(new BigDecimal(30));
@@ -184,21 +172,22 @@ public class InventoryRepositoryTest {
 		i2.setQuantity(2);
 		i2.setProduct(p2);
 		
-		List<OrderItem> incomplete = new ArrayList<OrderItem>();
-		
-		incomplete.add(i1);
-		incomplete.add(i2);
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/1", Product.class))
-		.thenThrow(new RestClientException("Failed 1"));
-		
-		Mockito.when(restTemplate.getForObject("http://inventory.svc:8080/products/2", Product.class))
-		.thenThrow(new RestClientException("Failed 2"));
-		
+		List<OrderItem> incomplete = List.of(i1, i2);
+
+		server.expect(requestTo("/products/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withServerError());
+
+		server.expect(requestTo("/products/2"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withServerError());
+
 		List<OrderItem> found = repository.getProductDetails(incomplete);
 		
-		assertThat(found).isEqualTo(incomplete);
+		assertThat(found)
+			.usingRecursiveFieldByFieldElementComparator()
+			.isEqualTo(incomplete);
+
+		server.verify();
 	}
-	
-	
 }

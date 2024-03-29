@@ -1,129 +1,122 @@
 package io.konveyor.demo.gateway.repository;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import io.konveyor.demo.gateway.command.ProductCommand;
-import io.konveyor.demo.gateway.model.OrderItem;
-import io.konveyor.demo.gateway.model.Product;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.client.RestClient;
 
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
-import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
-
-import io.opentracing.Span;
-import io.opentracing.Tracer;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.konveyor.demo.gateway.model.OrderItem;
+import io.konveyor.demo.gateway.model.Product;
+import io.micrometer.tracing.annotation.NewSpan;
+import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
-import rx.Observable;
 
-@Component
+@Repository
 @Slf4j
-public class InventoryRepository extends GenericRepository{
-	
-	@Autowired
-	Tracer tracer;
-	
-	@Autowired
-	RestTemplate restTemplate;
-	
-	@Value("${hystrix.threadpool.ProductsThreads.coreSize}")
-	private int threadSize;
-	
-	@Value("${services.inventory.url}")
-	String inventoryServiceURL;
-	
-	public List<OrderItem> getProductDetails(List<OrderItem> items){
-		Span span = tracer.buildSpan("getProductDetails").start();
-		log.debug("Entering InventoryRepository.getProductDetails()");
-		List<OrderItem> detailedItems = new ArrayList<>();
-		for(int index= 0; index < items.size();) {
-			List<Observable<OrderItem>> observables = new ArrayList<>();
-			int batchLimit = Math.min( index + threadSize, items.size() );
-			for( int batchIndex = index; batchIndex < batchLimit; batchIndex++ )
-			{
-				observables.add( new ProductCommand( items.get(batchIndex), inventoryServiceURL, restTemplate ).toObservable() );
-			}
-			log.info("Will get product detail from " + observables.size() + " items");
-			Observable<OrderItem[]> zipped = Observable.zip( observables, objects->
-			{
-				OrderItem[] detailed = new OrderItem[objects.length];
-				for( int batchIndex = 0; batchIndex < objects.length; batchIndex++ )
-				{
-					detailed[batchIndex] = (OrderItem)objects[batchIndex];
-				}
-				return detailed;
-			} );
-			Collections.addAll( detailedItems, zipped.toBlocking().first() );
-			index += threadSize;
-		}
-		span.finish();
-		return detailedItems;
+public class InventoryRepository extends GenericRepository {
+	private final ApplicationContext applicationContext;
+	private final RestClient restClient;
+
+	public InventoryRepository(ApplicationContext applicationContext, RestClient.Builder restClientBuilder, @Value("${services.inventory.url}") String inventoryServiceURL) {
+      this.applicationContext = applicationContext;
+      this.restClient = restClientBuilder.baseUrl(inventoryServiceURL)
+			.defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+			.build();
 	}
-	
-	@HystrixCommand(commandKey = "AllProducts", fallbackMethod = "getFallbackProducts", commandProperties = {
-            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
-	})
-	public List<Product> findAll(Pageable pageable) {
-		Span span = tracer.buildSpan("findAll").start();
+
+	@CircuitBreaker(name = "ProductDetails", fallbackMethod = "getFallbackProduct")
+	@Retry(name = "ProductDetails", fallbackMethod = "getFallbackProduct")
+	public Product getProduct(OrderItem item) {
+		return this.restClient.get()
+			.uri("/{id}", item.getProduct().getId())
+			.retrieve()
+			.body(Product.class);
+	}
+
+	@NewSpan
+	public List<OrderItem> getProductDetails(@SpanTag List<OrderItem> items) {
+		log.debug("Entering InventoryRepository.getProductDetails()");
+
+		return items.stream()
+			.map(item -> {
+				// Need to do this so that the annotations work
+				// If its just a local method call then none of the AOP stuff takes effect
+				var product = this.applicationContext.getBean(InventoryRepository.class).getProduct(item);
+				var i = item.toBuilder();
+
+				if (product != null) {
+					i.product(product);
+				}
+
+				return i.build();
+
+			})
+			.toList();
+	}
+
+	@CircuitBreaker(name = "AllProducts", fallbackMethod = "getFallbackProducts")
+	@Retry(name = "AllProducts", fallbackMethod = "getFallbackProducts")
+	@NewSpan
+	public List<Product> findAll(@SpanTag Pageable pageable) {
 		log.debug("Entering InventoryRepository.findAll()");
-		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(inventoryServiceURL)
+
+		return this.restClient.get()
+			.uri(uriBuilder -> uriBuilder
 				.queryParam("page", pageable.getPageNumber())
 				.queryParam("size", pageable.getPageSize())
-				.queryParam("sort", getSortString(pageable));
-		ResponseEntity<List<Product>> responseEntity = 
-				  restTemplate.exchange(
-						  builder.toUriString(),
-						  HttpMethod.GET,
-						  null,
-						  new ParameterizedTypeReference<List<Product>>() {}
-				  );
-		List<Product> orders = responseEntity.getBody();
-		span.finish();
-		return orders;
+				.queryParam("sort", getSortString(pageable))
+				.build()
+			)
+			.retrieve()
+			.body(new ParameterizedTypeReference<>() {});
 	}
-	
-	@HystrixCommand(commandKey = "Products", fallbackMethod = "getFallbackProduct", commandProperties = {
-            @HystrixProperty(name = "execution.isolation.thread.timeoutInMilliseconds", value = "1000")
-	})
-	public Product getProductById(Long id) {
-		Span span = tracer.buildSpan("getProductById").start();
+
+	@CircuitBreaker(name = "Products", fallbackMethod = "getFallbackProduct")
+	@Retry(name = "Products", fallbackMethod = "getFallbackProduct")
+	@NewSpan
+	public Product getProductById(@SpanTag Long id) {
 		log.debug("Entering InventoryRepository.getProductById()");
-		UriComponentsBuilder builder = UriComponentsBuilder
-				.fromHttpUrl(inventoryServiceURL)
-				.pathSegment( "{product}");		
-		Product p = restTemplate.getForObject(
-				builder.buildAndExpand(id).toUriString(), 
-				Product.class);
+
+		var p = this.restClient.get()
+			.uri("/{id}", id)
+			.retrieve()
+			.body(Product.class);
+
 		//Trigger fallback if no result is obtained.
 		if (p == null) {
 			throw new RuntimeException();
 		}
 		log.debug(p.toString());
-		span.finish();
-		return p;
-	}
-	
-	public List<Product> getFallbackProducts(Pageable pageable, Throwable e) {
-		log.warn("Failed to obtain Products, " + e.getMessage());
-		return new ArrayList<Product>();
-	}
-	
-	public Product getFallbackProduct(Long id, Throwable e) {
-		log.warn("Failed to obtain Product, " + e.getMessage() + " for Product with id " + id);
-		Product p = new Product();
-		p.setId(id);
-		p.setName("Unknown");
-		p.setDescription("Unknown");	
 		return p;
 	}
 
+	public List<Product> getFallbackProducts(Pageable pageable, Exception e) {
+		log.warn("Failed to obtain Products, " + e.getMessage());
+		return new ArrayList<>();
+	}
+
+	public Product getFallbackProduct(Long id, Exception e) {
+		log.warn("Failed to obtain Product, " + e.getMessage() + " for Product with id " + id);
+
+		return Product.builder()
+			.id(id)
+			.name("Unknown")
+			.description("Unknown")
+			.build();
+	}
+
+	public Product getFallbackProduct(OrderItem item, Exception e) {
+		return Product.builder()
+			.id(item.getProduct().getId())
+			.build();
+	}
 }

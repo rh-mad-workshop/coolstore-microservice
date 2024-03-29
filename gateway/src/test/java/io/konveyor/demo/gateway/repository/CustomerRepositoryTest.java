@@ -1,95 +1,122 @@
 package io.konveyor.demo.gateway.repository;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
-import java.util.Properties;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.apache.commons.lang.SerializationUtils;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import io.konveyor.demo.gateway.model.Customer;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.aop.AopAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.cloud.circuitbreaker.resilience4j.Resilience4JAutoConfiguration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.client.MockRestServiceServer;
 
-import io.jaegertracing.Configuration;
-import io.opentracing.Tracer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
+import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerMetricsAutoConfiguration;
+import io.github.resilience4j.springboot3.retry.autoconfigure.RetryAutoConfiguration;
+import io.github.resilience4j.springboot3.timelimiter.autoconfigure.TimeLimiterAutoConfiguration;
+import io.konveyor.demo.gateway.model.Customer;
 
-@RunWith(SpringRunner.class)
-public class CustomerRepositoryTest {
-	
-	@TestConfiguration
-    static class CustomerRepositoryTestContextConfiguration {
-		@Bean
-        public Tracer tracer() {
-        	return new Configuration("gateway").getTracer();
-        }
-		
-		@Bean
-		public static PropertySourcesPlaceholderConfigurer properties() {
-			final PropertySourcesPlaceholderConfigurer pspc = 
-					new PropertySourcesPlaceholderConfigurer();
-			final Properties properties = new Properties();
-			properties.setProperty("services.customers.url", "http://customers.svc:8080/customers");
-			pspc.setProperties(properties);
-			return pspc;
-		}
-		
-		@Bean
-		public CustomerRepository repository() {
-			return new CustomerRepository();
-		}
-	}
-	
-	@MockBean
-	RestTemplate restTemplate;
-	
+@RestClientTest(
+	components = CustomerRepository.class,
+	properties = "services.customers.url=/customers"
+)
+@ImportAutoConfiguration({ AopAutoConfiguration.class, Resilience4JAutoConfiguration.class, RetryAutoConfiguration.class, CircuitBreakerAutoConfiguration.class, CircuitBreakerMetricsAutoConfiguration.class, TimeLimiterAutoConfiguration.class })
+@AutoConfigureObservability
+class CustomerRepositoryTest {
 	@Autowired
-	CustomerRepository repository;
-	
-	private Customer customer;
-	
-	@Before
-	public void setup() {
-		customer = new Customer();
-		customer.setId(new Long(1));
-		customer.setName("Test Customer");
-		customer.setSurname("Test Customer");
-		customer.setUsername("testcustomer");
-		customer.setZipCode("28080");
-		customer.setCountry("Spain");
-		customer.setCity("Madrid");
-		customer.setAddress("Test Address");
+	private MockRestServiceServer server;
+
+	@Autowired
+	private CustomerRepository repository;
+
+	@Autowired
+	private ObjectMapper objectMapper;
+
+	private static Customer CUSTOMER;
+	private String customerJson;
+
+	@BeforeAll
+	static void createCustomer() {
+		CUSTOMER = new Customer();
+		CUSTOMER.setId(1L);
+		CUSTOMER.setName("Test Customer");
+		CUSTOMER.setSurname("Test Customer");
+		CUSTOMER.setUsername("testcustomer");
+		CUSTOMER.setZipCode("28080");
+		CUSTOMER.setCountry("Spain");
+		CUSTOMER.setCity("Madrid");
+		CUSTOMER.setAddress("Test Address");
 	}
-	
+
+	@BeforeEach
+	void createCustomerJson() throws JsonProcessingException {
+		this.customerJson = this.objectMapper.writeValueAsString(CUSTOMER);
+		this.server.reset();
+	}
+
 	@Test
-	public void getCustomerByIdExistingTest() {
-		Mockito.when(restTemplate.getForObject("http://customers.svc:8080/customers/1", Customer.class))
-			.thenReturn((Customer)SerializationUtils.clone(customer));
-		
-		Customer found = repository.getCustomerById(new Long(1));
-		assertThat(found).isEqualTo(customer);
+	void getCustomerByIdExistingTest() {
+		this.server.expect(requestTo("/customers/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess(customerJson, MediaType.APPLICATION_JSON));
+
+		var customer = repository.getCustomerById(1L);
+
+		assertThat(customer)
+			.isNotNull()
+			.usingRecursiveComparison()
+			.isEqualTo(CUSTOMER);
+
+		this.server.verify();
 	}
-	
-	@Test(expected = RuntimeException.class)
-	public void getCustomerByIdNonExistingTest() {
-		
-		Mockito.when(restTemplate.getForObject("http://customers.svc:8080/customers/1", Customer.class))
-		.thenReturn(null);
-		
-		repository.getCustomerById(new Long(1));
-	}
-	
+
 	@Test
-	public void getFallbackCustomerTest() {
+	void getCustomerByIdNonExistingTest() {
+		this.server.expect(requestTo("/customers/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess());
+
+
+		var fallbackCustomer = repository.getFallbackCustomer(1L, new Exception());
+
+		assertThat(repository.getCustomerById(1L))
+			.isNotNull()
+			.usingRecursiveComparison()
+			.isEqualTo(fallbackCustomer);
+
+		this.server.verify();
+	}
+
+	@Test
+	void fallsBack() {
+		var fallbackCustomer = repository.getFallbackCustomer(1L, new Exception());
+
+		this.server.expect(requestTo("/customers/1"))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withServerError());
+
+		assertThat(repository.getCustomerById(1L))
+			.isNotNull()
+			.usingRecursiveComparison()
+			.isEqualTo(fallbackCustomer);
+
+		this.server.verify();
+	}
+
+	@Test
+	void getFallbackCustomerTest() {
 		Customer c = new Customer();
-		c.setId(new Long(1));
+		c.setId(1L);
 		c.setUsername("Unknown");
 		c.setName("Unknown");
 		c.setSurname("Unknown");
@@ -97,9 +124,11 @@ public class CustomerRepositoryTest {
 		c.setCity("Unknown");
 		c.setCountry("Unknown");
 		c.setZipCode("Unknown");
-		
-		Customer found = repository.getFallbackCustomer(new Long(1), new Exception());
-		
-		assertThat(found).isEqualTo(c);
+
+		var customer = repository.getFallbackCustomer(1L, new Exception());
+
+		assertThat(customer)
+			.usingRecursiveComparison()
+			.isEqualTo(c);
 	}
 }
