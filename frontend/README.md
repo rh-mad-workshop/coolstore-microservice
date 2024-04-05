@@ -7,12 +7,12 @@ The Retail application used to demonstrate all Konveyor projects in an end to en
 ```bash
 git clone https://github.com/konveyor/mig-demo-apps
 cd mig-demo-apps/apps/e2e-demo
-npm install && npm run start:dev
+npm install --force && npm run start:dev
 ```
 ## Development scripts
 ```sh
 # Install development/build dependencies
-npm install
+npm install --force
 
 # Start the development server
 npm run start:dev
