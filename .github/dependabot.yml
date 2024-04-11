@@ -1,9 +1,19 @@
 version: 2
 updates:
   - package-ecosystem: maven
-    directory: /
+    directory: /gateway
     schedule:
       interval: daily
+
+  - package-ecosystem: maven
+    directory: /inventory
+    schedule:
+      interval: daily
+
+  - package-ecosystem: maven
+    directory: /orders
+    schedule:
+      interval: daily      
 
   - package-ecosystem: github-actions
     directory: /
