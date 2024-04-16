@@ -14,8 +14,6 @@ import org.springframework.web.client.RestClient;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.konveyor.demo.gateway.model.Order;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 
 @Repository
@@ -31,8 +29,8 @@ public class OrderRepository extends GenericRepository {
 
 	@CircuitBreaker(name = "Orders", fallbackMethod = "getFallbackOrder")
 	@Retry(name = "Orders", fallbackMethod = "getFallbackOrder")
-	@NewSpan
-	public Order getOrderById(@SpanTag Long id) {
+//	@NewSpan
+	public Order getOrderById(Long id) {
 		log.debug("Entering OrderRepository.getOrderById()");
 
 		var o = this.restClient.get()
@@ -54,8 +52,8 @@ public class OrderRepository extends GenericRepository {
 	
 	@CircuitBreaker(name = "AllOrders", fallbackMethod = "getFallbackOrders")
 	@Retry(name = "AllOrders", fallbackMethod = "getFallbackOrders")
-	@NewSpan
-	public List<Order> findAll(@SpanTag Pageable pageable) {
+//	@NewSpan
+	public List<Order> findAll(Pageable pageable) {
 		log.debug("Entering OrderRepository.findAll()");
 
 		return this.restClient.get()

@@ -26,16 +26,17 @@ public class ProductService implements IProductService {
 	 * @param id The {@link Product} {@code id}
 	 * @return The {@link Product} with the supplied {@code id}, {@literal null} if no {@link Product} is found.
 	 */
+//	@WithSpan
+	@Override
 	public Product findById(Long id) {
 		Log.debug("Entering ProductService.findById()");
 		return repository.findById(id);
 	}
 
+//	@WithSpan
 	@Override
 	public List<Product> findAll(Page page, Sort sort) {
 		Log.debug("Entering ProductService.findAll()");
 		return repository.findAll(page, sort);
 	}
-	
-	
 }

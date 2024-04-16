@@ -16,8 +16,6 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.konveyor.demo.gateway.model.OrderItem;
 import io.konveyor.demo.gateway.model.Product;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 
 @Repository
@@ -42,8 +40,8 @@ public class InventoryRepository extends GenericRepository {
 			.body(Product.class);
 	}
 
-	@NewSpan
-	public List<OrderItem> getProductDetails(@SpanTag List<OrderItem> items) {
+//	@NewSpan
+	public List<OrderItem> getProductDetails(List<OrderItem> items) {
 		log.debug("Entering InventoryRepository.getProductDetails()");
 
 		return items.stream()
@@ -65,8 +63,8 @@ public class InventoryRepository extends GenericRepository {
 
 	@CircuitBreaker(name = "AllProducts", fallbackMethod = "getFallbackProducts")
 	@Retry(name = "AllProducts", fallbackMethod = "getFallbackProducts")
-	@NewSpan
-	public List<Product> findAll(@SpanTag Pageable pageable) {
+//	@NewSpan
+	public List<Product> findAll(Pageable pageable) {
 		log.debug("Entering InventoryRepository.findAll()");
 
 		return this.restClient.get()
@@ -82,8 +80,8 @@ public class InventoryRepository extends GenericRepository {
 
 	@CircuitBreaker(name = "Products", fallbackMethod = "getFallbackProduct")
 	@Retry(name = "Products", fallbackMethod = "getFallbackProduct")
-	@NewSpan
-	public Product getProductById(@SpanTag Long id) {
+//	@NewSpan
+	public Product getProductById(Long id) {
 		log.debug("Entering InventoryRepository.getProductById()");
 
 		var p = this.restClient.get()

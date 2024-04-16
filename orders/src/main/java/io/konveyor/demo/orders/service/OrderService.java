@@ -8,8 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import io.konveyor.demo.orders.model.Order;
 import io.konveyor.demo.orders.repository.OrderRepository;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 
 @Service
 @Transactional
@@ -23,12 +21,12 @@ public class OrderService {
 	 * @param id The {@link Order} {@code id}
 	 * @return The {@link Order} with the supplied {@code id}, {@literal null} if no {@link Order} is found. 
 	 */
-	@NewSpan
-	public Order findById(@SpanTag("arg.id") Long id) {
+//	@NewSpan
+	public Order findById(Long id) {
 		return repository.findById(id).orElse(null);
 	}
 
-	@NewSpan
+//	@NewSpan
 	public Page<Order> findAll(Pageable pageable) {
 		return repository.findAll(pageable);
 	}

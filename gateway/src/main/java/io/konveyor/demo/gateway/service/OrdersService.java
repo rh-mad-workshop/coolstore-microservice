@@ -10,8 +10,6 @@ import io.konveyor.demo.gateway.model.Order;
 import io.konveyor.demo.gateway.repository.CustomerRepository;
 import io.konveyor.demo.gateway.repository.InventoryRepository;
 import io.konveyor.demo.gateway.repository.OrderRepository;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -26,8 +24,8 @@ public class OrdersService {
 	@Autowired
 	private InventoryRepository inventoryRepository;
 
-	@NewSpan
-	public Order getById(@SpanTag Long id) {
+//	@NewSpan
+	public Order getById(Long id) {
 		log.debug("Entering OrdersService.getById()");
 		Order o = orderRepository.getOrderById(id);
 
@@ -39,8 +37,8 @@ public class OrdersService {
 		return o;
 	}
 
-	@NewSpan
-	public Page<Order> findAll(@SpanTag Pageable pageable) {
+//	@NewSpan
+	public Page<Order> findAll(Pageable pageable) {
 		log.debug("Entering OrdersService.findAll()");
 		var orders = orderRepository.findAll(pageable);
 
