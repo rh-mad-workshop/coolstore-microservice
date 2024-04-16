@@ -1,0 +1,12 @@
+schemaVersion: 2.2.0
+metadata:
+  name: coolstore-microservice
+attributes:
+  che-theia.eclipse.org/sidecar-policy: mergeImage
+components:
+  - name: universal-developer-image
+    container: 
+      image: registry.redhat.io/devspaces/udi-rhel8@sha256:720d4bff5924ac76af5b25606ebfb2bcf853212af6c8202f591c4954a88f57f6
+      memoryLimit: 6Gi
+      mountSources: true
+commands: []
