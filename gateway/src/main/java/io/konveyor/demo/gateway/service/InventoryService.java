@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 
 import io.konveyor.demo.gateway.model.Product;
 import io.konveyor.demo.gateway.repository.InventoryRepository;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -18,16 +16,16 @@ public class InventoryService {
 	@Autowired
 	private InventoryRepository inventoryRepository;
 
-	@NewSpan
-	public Page<Product> findAll(@SpanTag Pageable pageable) {
+//	@NewSpan
+	public Page<Product> findAll(Pageable pageable) {
 		log.debug("Entering OrdersService.findAll()");
 
 		var orders = inventoryRepository.findAll(pageable);
 		return new PageImpl<Product>(orders, pageable, orders.size());
 	}
 
-	@NewSpan
-	public Product getById(@SpanTag Long id) {
+//	@NewSpan
+	public Product getById(Long id) {
 		log.debug("Entering CustomersService.getById()");
 		return inventoryRepository.getProductById(id);
 	}

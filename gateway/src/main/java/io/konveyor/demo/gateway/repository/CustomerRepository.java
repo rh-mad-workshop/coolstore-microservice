@@ -15,8 +15,6 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.konveyor.demo.gateway.model.Customer;
 import io.konveyor.demo.util.PaginatedResponse;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 
 @Repository
@@ -32,8 +30,8 @@ public class CustomerRepository extends GenericRepository {
 
 	@CircuitBreaker(name = "Customers", fallbackMethod = "getFallbackCustomer")
 	@Retry(name = "Customers", fallbackMethod = "getFallbackCustomer")
-	@NewSpan
-	public Customer getCustomerById(@SpanTag Long id) {
+//	@NewSpan
+	public Customer getCustomerById(Long id) {
 		log.debug("Entering OrdersService.getCustomerById()");
 
 		var c = this.restClient.get()
@@ -52,8 +50,8 @@ public class CustomerRepository extends GenericRepository {
 
 	@CircuitBreaker(name = "AllCustomers", fallbackMethod = "getFallbackCustomers")
 	@Retry(name = "AllCustomers", fallbackMethod = "getFallbackCustomer")
-	@NewSpan
-	public List<Customer> findAll(@SpanTag Pageable pageable) {
+//	@NewSpan
+	public List<Customer> findAll(Pageable pageable) {
 		log.debug("Entering CustomerRepository.findAll()");
 
 		return this.restClient.get()

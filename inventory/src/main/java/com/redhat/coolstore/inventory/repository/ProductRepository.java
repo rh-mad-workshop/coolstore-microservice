@@ -13,6 +13,7 @@ import com.redhat.coolstore.inventory.model.Product;
 
 @ApplicationScoped
 public class ProductRepository implements PanacheRepository<Product> {
+//	@WithSpan
 	public List<Product> findAll(Page page, Sort sort) {
 		Log.debug("Entering ProductRepository.findAll()");
 		return findAll(sort)
