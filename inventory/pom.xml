@@ -71,7 +71,6 @@
 <!--			<groupId>io.opentelemetry.instrumentation</groupId>-->
 <!--			<artifactId>opentelemetry-jdbc</artifactId>-->
 <!--		</dependency>-->
-
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-junit5-mockito</artifactId>
