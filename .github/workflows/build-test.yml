@@ -35,7 +35,7 @@ jobs:
           - gateway
     name: "build-test-${{ matrix.project }}-${{ matrix.java }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java ${{ matrix.java }}
         uses: actions/setup-java@v4
