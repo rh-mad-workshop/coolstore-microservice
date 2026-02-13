@@ -11,7 +11,7 @@
 		<maven.compiler.version>3.15.0</maven.compiler.version>
 		<maven.compiler.release>21</maven.compiler.release>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
-		<otel.version>2.24.0-alpha</otel.version>
+		<otel.version>2.25.0-alpha</otel.version>
 		<spring-boot.version>3.2.4</spring-boot.version>
 		<dekorate.version>2.11.5.redhat-00017</dekorate.version>
 	</properties>
