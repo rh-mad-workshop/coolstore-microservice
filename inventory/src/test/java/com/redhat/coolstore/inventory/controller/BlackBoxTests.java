@@ -38,7 +38,7 @@ class BlackBoxTests {
         assertThat(products)
             .isNotNull()
             .hasSize(6)
-            .usingRecursiveFieldByFieldElementComparator()
+            .usingRecursiveFieldByFieldElementComparatorIgnoringFields("$$_hibernate_tracker")
             .containsExactlyElementsOf(ALL_PRODUCTS);
     }
 
@@ -53,6 +53,7 @@ class BlackBoxTests {
         assertThat(product)
             .isNotNull()
             .usingRecursiveComparison()
+            .ignoringFieldsMatchingRegexes("\\$\\$_hibernate.*")
             .isEqualTo(ALL_PRODUCTS.get(id - 1));
     }
 
