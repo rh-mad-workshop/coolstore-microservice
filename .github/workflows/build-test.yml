@@ -6,14 +6,12 @@ on:
       - main
     paths-ignore:
       - '**/*.md'
-      - '.github/**/*.yml'
       - '.gitignore'
   pull_request:
     branches:
       - main
     paths-ignore:
       - '**/*.md'
-      - '.github/**/*.yml'
       - '.gitignore'
 
 concurrency:
